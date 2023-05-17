@@ -8,6 +8,8 @@ Often, I would prefer more contrast between these groups, so this module creates
 
 If that's not enough help, the vim9-focalpoint will also shade unfocused windows when splits are open.
 
+See it in action [vim9-focalpoint](https://www.youtube.com/watch?v=XkErei9LtSU)
+
 ## What do you get?
 
 You will not see a change after installing this plugin. Everything you get is "under the hood" and will require some light assembly.
