@@ -1,0 +1,7 @@
+*focalpoint* Highlight current window with a contrasting statusbar. Shade
+unfocused splits.
+
+Author:  Shay Hill Pope <http://shayallenhill.com>
+License: Same terms as Vim itself (see |license|)
+
+vim:tw=78:et:ft=help:norl:
