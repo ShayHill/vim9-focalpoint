@@ -61,23 +61,9 @@ if !exists('g:focalpoint_bg_fade')
     g:focalpoint_bg_fade = 0.1
 endif
 
-
-# simplify mode names on statusline
-g:line_mode_map = {
-    "n": "N",
-    "v": "V",
-    "V": "V",
-    "\<c-v>": "V",
-    "i": "I",
-    "R": "R",
-    "r": "R",
-    "Rv": "R",
-    "c": "C",
-    "s": "S",
-    "S": "S",
-    "\<c-s>": "S",
-    "t": "T"
-}
+if !exists('g:focalpoint_use_pmenu')
+    g:focalpoint_use_pmenu = v:true
+endif
 
 
 # ---------------------------------------------------------------------------- #
@@ -103,11 +89,16 @@ def RgbToHex(rgb: list<number>): string
     return '#' .. join(three_hex, '')
 enddef
 
+
 def ValueToColorIndex(v: number): number
-    # Subroutine of HexToCterm
     # Strength of color value [0 .. 5].
-    # :param v: [0 .. 255]
-    # :return: [0 .. 5]
+    # Subroutine of HexToCterm
+    #
+    # Inputs:
+    #   v - [0 .. 255]
+    # Returns:
+    #   [0 .. 5]
+    #
     # Red identifies a subset of the cterm colors [16 .. 231]
     # Green identifies a subset of that subset
     # Blue idenfities a member of *that* subset
@@ -121,17 +112,36 @@ def ValueToColorIndex(v: number): number
 enddef
 
 
-def SqEuclidean(vec_a: list<number>, vec_b: list<number>): float
+def SqEuclidean(vec_a: list<number>, vec_b: list<number>): number
     # Squared Euclidean distance between two vectors
-    var terms = map(copy(vec_a), (i, v) => pow(v - vec_b[i], 2))
+    var diffs = map(copy(vec_a), (i, v) => v - vec_b[i]) 
+    var terms = map(copy(diffs), (_, v) => v * v)
     return terms[0] + terms[1] + terms[2]
 enddef
 
-if assert_equal(SqEuclidean([0, 0, 1], [0, 0, 0]), 1.0) | throw v:errors[-1] | endif
-if assert_equal(SqEuclidean([255, 0, 0], [0, 0, 0]), 65025.0) | throw v:errors[-1] | endif
+
+def SqColorSpan(hex_color_a: string, hex_color_b: string): number
+    # Squared distance between two colors in the RGB color space
+    #
+    # Inputs:
+    #   hex_color_a - '#ffffff'
+    #   hex_color_b - '#000000'
+    # Returns:
+    #   [0 .. 195075]
+    #
+    # This is only useful for determining < = > relationships between pairs of
+    # colors.
+    var rgb_a = HexToRgb(hex_color_a)
+    var rgb_b = HexToRgb(hex_color_b)
+    return SqEuclidean(rgb_a, rgb_b)
+enddef
 
 
-def HexToCterm(hex_color: string): number
+if assert_equal(SqEuclidean([0, 0, 1], [0, 0, 0]), 1) | throw v:errors[-1] | endif
+if assert_equal(SqEuclidean([255, 0, 0], [0, 0, 0]), 65025) | throw v:errors[-1] | endif
+
+
+def HexToCterm(hex_color: string): string
     # The nearest cterm color to a hex color
     # This is apparently the algorithm used by tmux, but it won't necessarily
     # produce the same result as a brute force check. Definitely close enough
@@ -158,7 +168,7 @@ def HexToCterm(hex_color: string): number
 
     var gray_err = SqEuclidean(rgb, [gv, gv, gv])
     var color_err = SqEuclidean(rgb, cterm_color)
-    return color_err <= gray_err ? 16 + color_index : 232 + gray_index
+    return color_err <= gray_err ? string(16 + color_index) : string(232 + gray_index)
 enddef
 
 
@@ -415,7 +425,7 @@ def SoftHi(base_hi_group: string, basename: string = ''): void
     endif
 
     var cterm_mixed = MixColors(grounds.ctermbg, grounds.ctermfg, g:focalpoint_text_fade)
-    cterm_mixed = string(HexToCterm(cterm_mixed))
+    cterm_mixed = HexToCterm(cterm_mixed)
     if hldict->get('cterm', {})->get('reverse', v:false)
         hldict.ctermbg = cterm_mixed
     else
@@ -430,31 +440,44 @@ def PickCurrentNowHi(candidates: list<string>): string
     # Search the highlight group candidates for a candidate with sufficient
     # background contrast with StatusLineNC. If no candidate with sufficient
     # contrast is found, return the best candidate.
-    var not_current_hex = HiGrounds(['StatusLineNC', 'Normal']).guibg
+    #
+    # Unexpected things that could cause this to fail
+    # - StatusLineNC is not defined (this is a default highlight group, so it
+    #   should always exist)
+    # - None of the candidates exist
+    # - No candidates are provided
+    # - None of the candidates has a background color
+    #
+    # If one of these or any other problem occurs, just return 'StatusLine',
+    # the default statusline hightlight group.
+    try
+        var statusline_nc_bg = HiGrounds(['StatusLineNC', 'Normal']).guibg
+        var contrast: number
+        var guibg: string
+        var best_contrast = 0
+        var best_candidate = candidates[0]
 
-    # Should never fail, but if it does, it won't break anything.
-    if not_current_hex == '' | return 'StatusLine' | endif
+        for candidate in candidates
+            guibg = HiGrounds([candidate]).guibg
+            if guibg == '' | continue | endif
 
-    var not_current = HexToRgb(not_current_hex)
+            contrast = SqColorSpan(statusline_nc_bg, guibg)
+            if contrast > SUFFICIENT_CONTRAST
+                return candidate
+            endif
+            if contrast > best_contrast
+                best_contrast = contrast
+                best_candidate = candidate
+            endif
+        endfor
 
-    var sqeuclidean: float
-    var guibg_hex: string
-    var best_sqeuclidean = 0.0
-    var best_candidate = candidates[0]
-    for candidate in candidates
-        guibg_hex = HiGrounds([candidate]).guibg
-        if guibg_hex == '' | continue | endif
-
-        sqeuclidean = SqEuclidean(not_current, HexToRgb(guibg_hex))
-        if sqeuclidean > SUFFICIENT_CONTRAST
-            return candidate
+        if best_contrast == 0
+            return 'StatusLine'
         endif
-        if sqeuclidean > best_sqeuclidean
-            best_sqeuclidean = sqeuclidean
-            best_candidate = candidate
-        endif
-    endfor
-    return best_candidate
+        return best_candidate
+    catch
+        return 'StatusLine'
+    endtry
 enddef
 
 
@@ -490,21 +513,29 @@ enddef
 
 
 def DefineNormalNC(): void
-    # Define a Normal highlighting group for non-current windows.
-    var grounds = HiGrounds(['Normal'])
-    var normal_nc = HlgetOrEmpty('Normal')
-    normal_nc.name = 'NormalNC'
-
-    var gui_mixed = MixColors(grounds.guifg, grounds.guibg, g:focalpoint_bg_fade)
-    var cterm_mixed = MixColors(grounds.ctermfg, grounds.ctermbg, g:focalpoint_bg_fade)
-    cterm_mixed = string(HexToCterm(cterm_mixed))
-
-    # You have to explicitly set fg here, because some colorschemes' Normal hi
-    # group will not have a foreground to inherit. In those cases, the grounds
-    # var will hold the default foreground value.
-    normal_nc.guibg = gui_mixed
-    normal_nc.ctermbg = cterm_mixed
-    hlset([normal_nc])
+    # Define a Normal highlighting group for non-current windows. This will
+    # provide a background color for shaded windows.
+    if g:focalpoint_use_pmenu
+        var grounds = HiGrounds(['Pmenu', 'Normal'])
+        var grounds_nc = HlgetOrEmpty('Pmenu')
+        grounds_nc.name = 'NormalNC'
+        hlset([grounds_nc])
+    else
+        var grounds = HiGrounds(['Normal'])
+        var grounds_nc = HlgetOrEmpty('Normal')
+        grounds_nc.name = 'NormalNC'
+        grounds_nc.guibg = MixColors(grounds.guifg, grounds.guibg, g:focalpoint_bg_fade)
+        grounds_nc.ctermbg = HexToCterm(
+            MixColors(grounds.ctermfg, grounds.ctermbg, g:focalpoint_bg_fade)
+        )
+        hlset([grounds_nc])
+        # some of the Pmenu shades are terrible (on a few, the background
+        # matches the text). If not using the Pmenu background color for
+        # shading, don't use it for popup menus either. Use our custom derived
+        # colors instead.
+        grounds_nc.name = 'Pmenu'
+        hlset([grounds_nc])
+    endif
 
     # any background defined for EndOfBuffer will prevent empty windows (like
     # terminals with no text) from shading
@@ -524,6 +555,18 @@ enddef
 
 g:FPReset()
 
+def WinState(winid: number): number
+    # Return the state of the window with winid
+    # 0: focused, no splits
+    # 1: unfocused, has splits (a priori)
+    # 2: focused, has splits
+    if winid == win_getid()
+        return winnr('$') > 1 ? 2 : 0
+    endif
+    return 1
+enddef
+
+
 def g:FPSelect(
         winid: number,
         statusline: string,
@@ -534,13 +577,7 @@ def g:FPSelect(
     # * if win is focused, only one window visible, statusline
     # * if win is unfocused, not_current
     # * if win is focused AND there are open splits, current_now
-    if winid == win_getid()
-        if winnr('$') > 1
-            return current_now
-        endif
-        return statusline
-    endif
-    return not_current
+    return [statusline, not_current, current_now][WinState(winid)]
 enddef
 
 

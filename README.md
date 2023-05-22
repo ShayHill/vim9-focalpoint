@@ -8,7 +8,11 @@ Often, I would prefer more contrast between these groups, so this module creates
 
 If that's not enough help, the vim9-focalpoint will also shade unfocused windows when splits are open.
 
-See it in action [vim9-focalpoint](https://www.youtube.com/watch?v=XkErei9LtSU)
+| ![focalpoint off](doc/focalpoint_off.jpg) | ![focalpoint on](doc/focalpoint_on.jpg) |
+| - | - |
+| without focalpoint | with focalpoint |
+
+Here it is with some of the default colorschemes: [vim9-focalpoint](https://www.youtube.com/watch?v=XkErei9LtSU)
 
 ## What do you get?
 
@@ -149,6 +153,46 @@ Vim9-statusline creates the NormalNC highlight group by mixing the default (Norm
 g:focalpoint_bg_fade = 0.1
 ~~~
 
+### more background shading
+
+Vim9-statusline creates a shaded background color by mixing foreground and background colors at a specified ratio. This creates a nice, muted shade for most achromatic backgrounds, but some colorschemes (peachpuff is a nice example) have a more chromatic "lowlight" color specified for their popup menus. You can set `g:focalpoint_use_pmenu = v:true` to shade unfocused windows with the Pmenu background instead of the custom background created by Vim9-statusline.
+
+| ![peachpuff focalpoint](doc/peachpuff_focalpoint.jpg) | ![focalpoint on](doc/peachpuff_pmenu.jpg) |
+| - | - |
+| `g:focalpoint_use_pmenu = v:false` | `g:focalpoint_use_pmenu = v:true` |
+
+Some of these Pmenu backgrounds are terrible (white background with white text), so you may wish to specify `g:focalpoint_use_pmenu = v:true` for some colorschemes and `v:false` for others. You can accomplish that with this snippet.
+
+~~~vim
+g:use_pmenu_to_shade = [
+    'delek',
+    'habamax',
+    'industry',
+    'koehler',
+    'lunaperche',
+    'morning',
+    'pablo',
+    'peachpuff',
+    'quiet',
+    'retrobox',
+    'torte',
+    'wildcharm',
+]
+
+augroup ResetStatuslineHiGroups
+  autocmd!
+  autocmd colorscheme * g:focalpoint_use_pmenu = index(g:use_pmenu_to_shade, g:colors_name) != -1 ? v:true : v:false | g:FPReset()
+augroup END
+~~~
+
+#### bonus feature
+
+Some of the included colorschemes are nice (e.g., zaibatsu) with one glaring exception: their popup-menu backgrounds are unreadable. If `g:focalpoint_use_pmenu = v:false` (the default), vim9-focalpoint will replace the theme Pmenu highlight group with the NormalNC color created by vim9-focalpoint.
+
+| ![zaibatsu_off](doc/zaibatsu_off.jpg) | ![zaibatsu on](doc/zaibatsu_on.jpg) |
+| - | - |
+| zaibatsu without focalpoint | zaibatsu with focalpoint |
+
 ### roll your own
 
 You can also use your own highlight groups in your GenerateStatusline function. They won't change with the colorscheme, but that might be what you want. You could build something out with triangle separators and multiple colors if that's what you wanted to do.
@@ -160,5 +204,3 @@ Leave out the relevant parts from your vimrc, and you won't get statusline enhan
 ## What if I don't use vim9script in my vimrc?
 
 If you know just a bit of vimscript, you can revert the above functions to classic vimscript. You can run the plugin if you're using Vim9+, no matter what style you use in your vimrc. If you don't want to script anything, you could create a new file in your vimfolder, type vim9script on the top line, paste the above code sections into it, then source that from your vimrc.
-
-# vim9-focalpoint
