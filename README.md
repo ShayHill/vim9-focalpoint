@@ -16,7 +16,7 @@ Here it is with some of the default colorschemes: [vim9-focalpoint](https://www.
 
 ## What do you get?
 
-You will not see a change after installing this plugin. Everything you get is "under the hood" and will require some light assembly.
+You will not see a change after installing this plugin. Everything you get is "under the hood" and will require some light assembly. (see file `example_config.vim`)
 
 ### New highlight groups
 
@@ -60,6 +60,8 @@ def g:FPHiSelect(
 The same as above, but wraps each string argument in '%#string#' so that it can be directly inserted into a statusline string. See `h: statusline` for instructions on building a statusline.
 
 ### Putting it all together
+
+I've included `example_config.vim`. You can work from that or use the examples to see how to build your own. Here's an expanded description of how everything works.
 
 To use these functions, you will build a statusline-generating function that takes one argument, `g:statusline_winid`, that Vim generates on it's own. After creating this function, you will tell Vim to use it to generate your statuslines. `set statusline=%!GenerateStatusline(g:statusline_winid)`
 
