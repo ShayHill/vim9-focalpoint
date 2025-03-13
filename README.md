@@ -20,22 +20,40 @@ You will not see a change after installing this plugin. Everything you get is "u
 
 ### New highlight groups
 
-Vim9-focalpoint creates 8 new highlight groups, 7 for statuslines, and 1 for window backgrounds. This gives a total of 2 background highlight groups and 9 default StatusLine highlight groups.
+Vim9-focalpoint creates 8 new highlight groups, 7 for statuslines, and 1 for window backgrounds. This gives a total of 2 background highlight groups and 9 StatusLine highlight groups. Beneath each highlighting group, I've included the definition Vim9-focalpoint will create if you are using the Habamax colorscheme. You don't have to use any of these, but they are provided for your convenience. You can use `g:FPHiSelect` to select from any highlight group you desire.
 
-* StatusLineHard (bold text for default statusline)
-* StatusLine  " previously existing
-* StatusLineSoft (grayed out text for default statusline)
-* StatusLineNCHard (bold text unfocused statusline)
-* StatusLineNC  " previously existing
-* StatusLineNCSoft (grayed out text for default statusline)
-* StatusLineCNHard (bold text for focused statusline with splits)
-* StatusLineCN  (normal text for focused statusline with splits)
-* StatusLineSoft (grayed out test for focused statusline with splits)
+#### The statusline when only one split is open
 
-* Normal " previously existing (your default background color)
-* NormalNC (a lower-contrast highlight group for unfocused splits)
+```
+StatusLine xxx term=bold,reverse ctermfg=234 ctermbg=247 guifg=#1c1c1c guibg=#9e9e9e
+StatusLineHard xxx term=bold,reverse cterm=bold ctermfg=234 ctermbg=247 gui=bold guifg=#1c1c1c guibg=#9e9e9e
+StatusLineSoft xxx term=bold,reverse ctermfg=242 ctermbg=247 guifg=#707070 guibg=#9e9e9e
+```
 
-### Two functions for choosing between them
+#### The statusline of unfocused splits when splits are open
+
+```
+StatusLineNC   xxx term=reverse ctermfg=234 ctermbg=243 guifg=#1c1c1c guibg=#767676
+StatusLineNCHard xxx term=bold,reverse cterm=bold ctermfg=234 ctermbg=243 gui=bold guifg=#1c1c1c guibg=#767676
+StatusLineNCSoft xxx term=reverse ctermfg=240 ctermbg=243 guifg=#565656 guibg=#767676
+```
+
+#### The statusline of focused splits when splits are open
+
+```
+StatusLineCN   xxx term=reverse cterm=reverse ctermfg=215 ctermbg=234 gui=reverse guifg=#ffaf5f guibg=#1c1c1c
+StatusLineCNHard xxx term=bold,reverse cterm=bold,reverse ctermfg=215 ctermbg=234 gui=bold,reverse guifg=#ffaf5f guibg=#1c1c1c
+StatusLineCNSoft xxx term=reverse cterm=reverse ctermfg=215 ctermbg=137 gui=reverse guifg=#ffaf5f guibg=#af7b47
+```
+
+#### The background color of focused and unfocused splits
+
+```
+Normal         xxx ctermfg=250 ctermbg=234 guifg=#bcbcbc guibg=#1c1c1c
+NormalNC       xxx ctermbg=237 guibg=#3a3a3a
+```
+
+### Two functions for choosing content and format based on window state
 
 ~~~vim
 def g:FPSelect(
@@ -46,7 +64,7 @@ def g:FPSelect(
 ): string
 ~~~
 
-Used winid to determine which state (normal, unfocused split, focused split) a statusline is in, then select the 1st, 2nd, or 3rd string. This can be used to insert different text in different states.
+This function will look at the winid and decide if the window is `normal` (only one split is open), `not_current` (unfocused split), or `current_now` (focused split when splits are open). It will then select and return the appropriate string as a highlight group. This can be used to insert different text in different states.
 
 ~~~vim
 def g:FPHiSelect(
@@ -57,7 +75,7 @@ def g:FPHiSelect(
 ): string
 ~~~
 
-The same as above, but wraps each string argument in '%#string#' so that it can be directly inserted into a statusline string. See `h: statusline` for instructions on building a statusline.
+The same as above, but wraps each string argument in `%#string#` so that it can be directly inserted into a statusline string. See `h: statusline` for instructions on building a statusline.
 
 ### Putting it all together
 
