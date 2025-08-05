@@ -450,14 +450,20 @@ def PickCurrentNowHi(candidates: list<string>): string
     #
     # If one of these or any other problem occurs, just return 'StatusLine',
     # the default statusline hightlight group.
+    var candidates_prime = candidates
+    try
+        candidates_prime = [g:focalpoint_explicate[g:colors_name]['cn']]
+    catch
+    endtry
+
     try
         var statusline_nc_bg = HiGrounds(['StatusLineNC', 'Normal']).guibg
         var contrast: number
         var guibg: string
         var best_contrast = 0
-        var best_candidate = candidates[0]
+        var best_candidate = candidates_prime[0]
 
-        for candidate in candidates
+        for candidate in candidates_prime
             guibg = HiGrounds([candidate]).guibg
             if guibg == '' | continue | endif
 
@@ -515,20 +521,41 @@ enddef
 def DefineNormalNC(): void
     # Define a Normal highlighting group for non-current windows. This will
     # provide a background color for shaded windows.
+    var explicated_fade = -1.0
+    try
+        explicated_fade = g:focalpoint_explicate[g:colors_name]['bg_fade']
+    catch
+    endtry
+
+    var grounds_candidates = ['Normal']
     if g:focalpoint_use_pmenu
-        var grounds = HiGrounds(['Pmenu', 'Normal'])
-        var grounds_nc = HlgetOrEmpty('Pmenu')
-        grounds_nc.name = 'NormalNC'
-        hlset([grounds_nc])
-    else
-        var grounds = HiGrounds(['Normal'])
-        var grounds_nc = HlgetOrEmpty('Normal')
-        grounds_nc.name = 'NormalNC'
-        grounds_nc.guibg = MixColors(grounds.guifg, grounds.guibg, g:focalpoint_bg_fade)
-        grounds_nc.ctermbg = HexToCterm(
-            MixColors(grounds.ctermfg, grounds.ctermbg, g:focalpoint_bg_fade)
-        )
-        hlset([grounds_nc])
+	grounds_candidates = ['Pmenu', 'Normal']
+    endif
+    try
+        grounds_candidates = [g:focalpoint_explicate[g:colors_name]['bg'], 'Normal']
+    catch
+    endtry
+
+    var grounds = HiGrounds(grounds_candidates)
+    var grounds_nc = HlgetOrEmpty(grounds_candidates[0])
+    grounds_nc.name = 'NormalNC'
+
+    var bg_fade = g:focalpoint_bg_fade
+    if g:focalpoint_use_pmenu
+        bg_fade = 0.0
+    endif
+    if explicated_fade != -1.0
+        bg_fade = explicated_fade
+    endif
+
+    if bg_fade > 0.0
+        grounds_nc.guibg = MixColors(grounds.guifg, grounds.guibg, bg_fade)
+        grounds_nc.ctermbg = HexToCterm(MixColors(grounds.ctermfg, grounds.ctermbg, bg_fade))
+    endif
+
+    hlset([grounds_nc])
+
+    if !g:focalpoint_use_pmenu
         # some of the Pmenu shades are terrible (on a few, the background
         # matches the text). If not using the Pmenu background color for
         # shading, don't use it for popup menus either. Use our custom derived
