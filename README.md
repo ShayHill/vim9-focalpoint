@@ -1,5 +1,7 @@
 # vim9-focalpoint
 
+# Vim9-focalpoint is no longer maintaned. Use [vim9-limelight](https://github.com/ShayHill/vim9-limelight) instead. It is effectively vim9-focalpoint v2. I saw the 1952 Chaplin film, *Limelight*, a few years ago and have since gotten tired of kicking myself for not naming this project vim9-limelight in the first place.
+
 Shade unfocused windows. Give a bright statusline color for active windows *when splits are open*.
 
 Statuslines in Vim are by default highlighted with the StatusLine and StatusLineNC (StatusLine Not Current) highlight groups. When no splits are open, you will only see the StatusLine highlight group. When splits *are* open, the focused split will have the StatusLine highlight and unfocused splits will have the StatusLineNC highlight.
